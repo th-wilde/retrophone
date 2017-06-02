@@ -5,12 +5,16 @@
 #include <unistd.h>
 #include <regex.h> 
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "popen2.h"
 #include "rp_voip.h"
 
 
 static pthread_t rpvoip_pipeReadThread;
 static FILE* rpvoip_outputPipeHandle;
 static FILE* rpvoip_inputPipeHandle;
+static pid_t rpvoip_linphone_pid;
 
 static enum rpvoip_state_enum rpvoip_state = NORMAL;
 static enum rpvoip_state_enum rpvoip_old_state = NORMAL;
@@ -29,58 +33,13 @@ static void strcat_s(char* str, int length, char *cat){
 	}
 }
 
-static bool rpvoip_popen(char *const command[], int *pid, int *infd, int *outfd)
-{
-    int p1[2], p2[2];
-
-    if (!pid || !infd || !outfd)
-        return false;
-
-    if (pipe(p1) == -1)
-        goto err_pipe1;
-    if (pipe(p2) == -1)
-        goto err_pipe2;
-    if ((*pid = fork()) == -1)
-        goto err_fork;
-
-    if (*pid) {
-        /* Parent process. */
-        *infd = p1[1];
-        *outfd = p2[0];
-        close(p1[0]);
-        close(p2[1]);
-        return true;
-    } else {
-        /* Child process. */
-        dup2(p1[0], 0);
-        dup2(p2[1], 1);
-        close(p1[0]);
-        close(p1[1]);
-        close(p2[0]);
-        close(p2[1]);
-        execvp(*command, command);
-        /* Error occured. */
-        fprintf(stderr, "error running %s: %s", *command, strerror(errno));
-        abort();
-    }
-
-err_fork:
-    close(p2[1]);
-    close(p2[0]);
-err_pipe2:
-    close(p1[1]);
-    close(p1[0]);
-err_pipe1:
-    return false;
-}
-
 void *rpvoip_processPipeRead(void *arg)
 {
 	int linebuffer=256;
 	char line[linebuffer];
 	
 	
-	while(!feof(rpvoip_outputPipeHandle)){
+	while(feof(rpvoip_outputPipeHandle)==0){
 		fgets(line, linebuffer, rpvoip_outputPipeHandle);
 		if(!regexec(&rpvoip_regex_normal, "abc", 0, NULL, 0)){ //Call ended -> goto normal state
 			pthread_mutex_lock(&rpvoip_state_mutex);
@@ -101,11 +60,11 @@ void *rpvoip_processPipeRead(void *arg)
 void rpvoip_init(){
 	
 	int rpvoip_linphone_pipe[2];
-	int pid;
 	
-	char* command[] = {"linphonec"};
-	
-	rpvoip_popen(command, &pid, &rpvoip_linphone_pipe[1], &rpvoip_linphone_pipe[0]);
+	char* command[] = {"linphonec", NULL};
+	rpvoip_linphone_pid = popen2(command, &rpvoip_linphone_pipe[1], &rpvoip_linphone_pipe[0]);
+	fflush(stdout);
+
 	
 	rpvoip_inputPipeHandle = fdopen(rpvoip_linphone_pipe[1], "w");
 	rpvoip_outputPipeHandle = fdopen(rpvoip_linphone_pipe[0], "r");
@@ -113,6 +72,7 @@ void rpvoip_init(){
 	regcomp(&rpvoip_regex_ring, "Receiving new incoming call from .*<(.*)>, assigned id ([[:digit:]]+)", 0);
 	regcomp(&rpvoip_regex_call, "Call ([[:digit:]]+) with .*<(.*)> connected|Call ([[:digit:]]+) to .*<(.*)> in progress", 0);
 	regcomp(&rpvoip_regex_normal, "Call ([[:digit:]]+) with .*<(.*)> (ended|error)", 0);
+	fflush(stdout);
 	
 	pthread_create(&rpvoip_pipeReadThread, NULL, rpvoip_processPipeRead, NULL);
 }
@@ -171,12 +131,15 @@ void rpvoip_quit() {
 	fputs("quit\n", rpvoip_inputPipeHandle);
 	fflush(rpvoip_inputPipeHandle);
 	
-	pthread_join(rpvoip_pipeReadThread, NULL);
+	waitpid(rpvoip_linphone_pid, NULL, WUNTRACED);
 	
+	pthread_cancel(rpvoip_pipeReadThread);
+	
+	/*
 	regfree(&rpvoip_regex_ring);
 	regfree(&rpvoip_regex_call);
 	regfree(&rpvoip_regex_normal);
 	
 	fclose(rpvoip_inputPipeHandle);
-	fclose(rpvoip_outputPipeHandle);
+	fclose(rpvoip_outputPipeHandle);*/
 }

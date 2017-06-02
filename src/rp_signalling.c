@@ -113,7 +113,7 @@ void *rps_readFromStdin(void *arg)
                 fprintf(stderr, "rps_init: Error open output_pipe\n");
         }
         char ch;
-        while(!feof(stdin))
+        while(feof(stdin)==0)
         {
                 ch = fgetc(stdin);
                 if((ch >= '0' && ch <= '9') || ch == 'P' || ch == 'H' || ch == 'D'){

@@ -48,7 +48,7 @@ void *rpn2c_processPipeRead(void *arg)
 {
 	pthread_t processNumber_thread;
 	
-	while(!feof(rpn2c_inputPipeHandle)){
+	while(feof(rpn2c_inputPipeHandle)==0){
 		char readedChar = fgetc(rpn2c_inputPipeHandle);
 		int readedNumber = readedChar-'0';
 		
