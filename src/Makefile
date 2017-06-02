@@ -1,23 +1,24 @@
 IDIR =include
 CC=gcc
-CFLAGS=-I$(IDIR) -g
+CFLAGS=-I$(IDIR) -g -std=gnu11
 
 ODIR=obj
 LDIR =lib
 
-LIBS=-lwiringPi -lpthread
+#LIBS=-lwiringPi -lpthread
+LIBS=-lpthread
 
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = readsignals.o
+_OBJ = retrophone.o rp_signalling.o rp_number2char.o rp_speak.o rp_voip.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-readsignals: $(OBJ)
+retrophone: $(OBJ)
 	gcc -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
