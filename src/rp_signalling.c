@@ -4,16 +4,18 @@
 #include <pthread.h>
 
 static FILE* rps_output_pipe;
+static pthread_t rps_ring_thread;
 
 #ifdef __USE_WIRINGPI__
 #include <wiringPi.h>
 
 static volatile int rps_isrFired = 0;
-pthread_mutex_t rps_isrFired_mutex;
+static pthread_mutex_t rps_isrFired_mutex;
 static volatile int rps_impulseCount = 0;
-pthread_mutex_t rps_impulseCount_mutex;
+static pthread_mutex_t rps_impulseCount_mutex;
 
-static int rps_gpio_port;
+static int rps_gpio_port_in;
+static int rps_gpio_port_out;
 
 void *rps_processDial(void *arg)
 {
@@ -42,9 +44,9 @@ void *rps_processImpulse(void *arg)
                 rps_isrFired = 1;
 		pthread_mutex_unlock(&rps_isrFired_mutex);
 		usleep(30000);
-		if(digitalRead(rps_gpio_port)){
+		if(digitalRead(rps_gpio_port_in)){
 			usleep(50000);
-			if(!digitalRead(rps_gpio_port)){
+			if(!digitalRead(rps_gpio_port_in)){
 				pthread_mutex_lock(&rps_impulseCount_mutex);
 				impulseCount++; //Valid Impulse
 				pthread_mutex_unlock(&rps_impulseCount_mutex);
@@ -81,20 +83,42 @@ void rps_processEdge(void)
 }
 
 
-void rps_init(int gpio_port, int output_pipe) {
+void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 
-	rps_gpio_port = gpio_port;
+	rps_gpio_port_in = gpio_port_in;
+	rps_gpio_port_out = gpio_port_out;
+	
 	rps_output_pipe = fdopen(output_pipe, "w");
 	if(rps_output_pipe == null){
 		fprintf(stderr, "rps_init: Error open output_pipe");
 	}
 
-	wiringPiISR(rps_gpio_port, INT_EDGE_BOTH, rps_processEdge);
-
-	//wiringPiSetupSys();
-	//wiringPiSetupGpio();
+	wiringPiSetupSys();
+	wiringPiISR(rps_gpio_port_in, INT_EDGE_SETUP, rps_processEdge);
 
 }
+
+void *rps_processRing(void *arg){
+	while(1){
+		digitalWrite(rps_gpio_port_out, 1);
+		sleep(3);
+		digitalWrite(rps_gpio_port_out, 0);
+		sleep(3);
+	}
+}
+
+void rps_ring(int ring_tone){
+
+	if(ring_tone != 0){
+		pthread_create(&rps_ring_thread, NULL, rps_processRing, NULL);
+	}else{
+		pthread_cancel(rps_ring_thread);
+		digitalWrite(rps_gpio_port_out, 0);
+		rps_processEdge();
+	}
+	
+}
+
 
 void rps_quit() {
 	fclose(rps_output_pipe);
@@ -105,7 +129,7 @@ void rps_quit() {
 
 #ifndef __USE_WIRINGPI__
 
-pthread_t thread1;
+static pthread_t thread1;
 
 void *rps_readFromStdin(void *arg)
 {
@@ -123,7 +147,7 @@ void *rps_readFromStdin(void *arg)
         }
 }
 
-void rps_init(int gpio_port, int output_pipe){
+void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 
 	rps_output_pipe = fdopen(output_pipe, "w");
 	if(rps_output_pipe == NULL){
@@ -134,12 +158,22 @@ void rps_init(int gpio_port, int output_pipe){
 	pthread_detach(thread1);
 }
 
-void rps_ring(int ring_tone){
-	switch(ring_tone){
-		default:
-			
-		break;
+void *rps_processRing(void *arg){
+	while(1){
+		printf("Telefon klingelt!");
+		sleep(3);
+		sleep(3);
 	}
+}
+
+void rps_ring(int ring_tone){
+
+	if(ring_tone != 0){
+		pthread_create(&rps_ring_thread, NULL, rps_processRing, NULL);
+	}else{
+		pthread_cancel(rps_ring_thread);
+	}
+	
 }
 
 void rps_quit() {

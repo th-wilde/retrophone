@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "popen2.h"
+#include "string_s.h"
 #include "rp_voip.h"
 
 
@@ -16,22 +17,16 @@ static FILE* rpvoip_outputPipeHandle;
 static FILE* rpvoip_inputPipeHandle;
 static pid_t rpvoip_linphone_pid;
 
-static enum rpvoip_state_enum rpvoip_state = NORMAL;
-static enum rpvoip_state_enum rpvoip_old_state = NORMAL;
-static pthread_mutex_t rpvoip_state_mutex;
+static enum rpvoip_state_enum rpvoip_state1 = NORMAL;
+static enum rpvoip_state_enum rpvoip_state2 = NORMAL;
+static pthread_mutex_t rpvoip_state_mutex1;
+static pthread_mutex_t rpvoip_state_mutex2;
+static int rpvoip_alternate_pointer1 = 0;
+static int rpvoip_alternate_pointer2 = 0;
 
 static regex_t rpvoip_regex_ring;
 static regex_t rpvoip_regex_call;
 static regex_t rpvoip_regex_normal;
-
-
-static void strcat_s(char* str, int length, char *cat){
-	if(strlen(str) + strlen(cat) + 1 < length){
-		strcat(str, cat);
-	}else{
-		fprintf(stderr, "error concat oveflow: %s %s > %d", str, cat, length);
-	}
-}
 
 void *rpvoip_processPipeRead(void *arg)
 {
@@ -41,18 +36,29 @@ void *rpvoip_processPipeRead(void *arg)
 	
 	while(feof(rpvoip_outputPipeHandle)==0){
 		fgets(line, linebuffer, rpvoip_outputPipeHandle);
-		if(!regexec(&rpvoip_regex_normal, "abc", 0, NULL, 0)){ //Call ended -> goto normal state
-			pthread_mutex_lock(&rpvoip_state_mutex);
-			rpvoip_state = NORMAL;
-			pthread_mutex_unlock(&rpvoip_state_mutex);
-		}else if(!regexec(&rpvoip_regex_ring, "abc", 0, NULL, 0)){ //Call incoming -> goto ring state
-			pthread_mutex_lock(&rpvoip_state_mutex);
-			rpvoip_state = RING;
-			pthread_mutex_unlock(&rpvoip_state_mutex);
-		}else if(!regexec(&rpvoip_regex_call, "abc", 0, NULL, 0)){ //Call answered -> goto call state
-			pthread_mutex_lock(&rpvoip_state_mutex);
-			rpvoip_state = CALL;
-			pthread_mutex_unlock(&rpvoip_state_mutex);
+		enum rpvoip_state_enum state;
+		if(!regexec(&rpvoip_regex_normal, line, 0, NULL, 0)){ //Call ended -> goto normal state
+			state = NORMAL;
+		}else if(!regexec(&rpvoip_regex_ring, line, 0, NULL, 0)){ //Call incoming -> goto ring state
+			state = RING;
+		}else if(!regexec(&rpvoip_regex_call, line, 0, NULL, 0)){ //Call answered -> goto call state
+			state = CALL;
+		}
+		
+		if(rpvoip_alternate_pointer1==0){
+			if(state != rpvoip_state1){
+				rpvoip_alternate_pointer1 = (rpvoip_alternate_pointer1 + 1) % 2;
+				pthread_mutex_lock(&rpvoip_state_mutex1);
+				rpvoip_state1 = state;
+				pthread_mutex_unlock(&rpvoip_state_mutex1);
+			}
+		}else{
+			if(state != rpvoip_state2){
+				rpvoip_alternate_pointer1 = (rpvoip_alternate_pointer1 + 1) % 2;
+				pthread_mutex_lock(&rpvoip_state_mutex2);
+				rpvoip_state2 = state;
+				pthread_mutex_unlock(&rpvoip_state_mutex2);
+			}
 		}
 	}
 }
@@ -77,19 +83,22 @@ void rpvoip_init(){
 	pthread_create(&rpvoip_pipeReadThread, NULL, rpvoip_processPipeRead, NULL);
 }
 void rpvoip_dial(char* number){
-	pthread_mutex_lock(&rpvoip_state_mutex);
-	if(rpvoip_state==NORMAL){
-		pthread_mutex_unlock(&rpvoip_state_mutex);
+	enum rpvoip_state_enum state;
+	if(rpvoip_alternate_pointer1==0){
+		state = rpvoip_state1;
+	}else{
+		state = rpvoip_state2;
+	}
+	if(state==NORMAL){
 		int sipAddressBuffer=256;
 		char sipAddress[sipAddressBuffer];
 		sipAddress[0] = 0x00;
 		strcat_s(sipAddress, sipAddressBuffer, "call ");
 		strcat_s(sipAddress, sipAddressBuffer, number);
-		strcat_s(sipAddress, sipAddressBuffer, "@sipgate.de \n");
+		strcat_s(sipAddress, sipAddressBuffer, "@sipgate.de\n");
 		fputs(sipAddress, rpvoip_inputPipeHandle);
 		fflush(rpvoip_inputPipeHandle);
-	}else if(rpvoip_state==CALL){
-		pthread_mutex_unlock(&rpvoip_state_mutex);
+	}else if(state==CALL){
 		for(int i=0; i<strlen(number); i++){
 			char numberToDial[3] = "0\n";
 			numberToDial[0] = number[i];
@@ -97,25 +106,24 @@ void rpvoip_dial(char* number){
 			fflush(rpvoip_inputPipeHandle);
 		}
 	}
-	pthread_mutex_unlock(&rpvoip_state_mutex);
 }
 
-bool rpvoip_update() {
-	pthread_mutex_lock(&rpvoip_state_mutex);
-	if(rpvoip_old_state != rpvoip_state){
-		rpvoip_old_state = rpvoip_state;
-		pthread_mutex_unlock(&rpvoip_state_mutex);
-		return true;
+enum rpvoip_state_enum rpvoip_update() {
+	rpvoip_alternate_pointer2 = (rpvoip_alternate_pointer2 + 1) % 2;
+	enum rpvoip_state_enum result;
+	if(rpvoip_alternate_pointer2==0){
+		pthread_mutex_lock(&rpvoip_state_mutex1);
+		result = rpvoip_state1;
+		pthread_mutex_unlock(&rpvoip_state_mutex1);
+	}else{
+		pthread_mutex_lock(&rpvoip_state_mutex2);
+		result = rpvoip_state2;
+		pthread_mutex_unlock(&rpvoip_state_mutex2);
 	}
-	pthread_mutex_unlock(&rpvoip_state_mutex);
-	return false;
-}
-enum rpvoip_state_enum rpvoip_get_state(){
-	pthread_mutex_lock(&rpvoip_state_mutex);
-	enum rpvoip_state_enum result = rpvoip_state;
-	pthread_mutex_unlock(&rpvoip_state_mutex);
+	
 	return result;
 }
+
 void rpvoip_answer(){
 	fputs("answer\n", rpvoip_inputPipeHandle);
 	fflush(rpvoip_inputPipeHandle);
