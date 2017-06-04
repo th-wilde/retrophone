@@ -60,16 +60,13 @@ void rpvoip_init(struct rp_config_struct config, int output_pipe){
 	
 	char* command[] = {"linphonec", NULL};
 	rpvoip_linphone_pid = popen2(command, &rpvoip_linphone_pipe[1], &rpvoip_linphone_pipe[0]);
-	fflush(stdout);
 
-	
 	rpvoip_inputLinphoneHandle = fdopen(rpvoip_linphone_pipe[1], "w");
 	rpvoip_outputLinphoneHandle = fdopen(rpvoip_linphone_pipe[0], "r");
 	
 	regcomp(&rpvoip_regex_ring, "Receiving new incoming call from .*<(.*)>, assigned id ([[:digit:]]+)", REG_EXTENDED);
 	regcomp(&rpvoip_regex_call, "Call ([[:digit:]]+) with .*<(.*)> connected|Call ([[:digit:]]+) to .*<(.*)> in progress", REG_EXTENDED);
 	regcomp(&rpvoip_regex_normal, "Call ([[:digit:]]+) with .*<(.*)> (ended|error)", REG_EXTENDED);
-	fflush(stdout);
 	
 	pthread_create(&rpvoip_pipeReadThread, NULL, rpvoip_processPipeRead, NULL);
 }

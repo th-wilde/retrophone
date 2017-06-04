@@ -1,12 +1,13 @@
 IDIR =include
 CC=gcc
-CFLAGS=-I$(IDIR) -g -std=gnu11
+CFLAGS=-I$(IDIR) -g -std=gnu11 -O3 -D__USE_WIRINGPI__
+#CFLAGS=-I$(IDIR) -g -std=gnu11 -O3
 
 ODIR=obj
 LDIR =lib
 
-#LIBS=-lwiringPi -lpthread
-LIBS=-lpthread
+LIBS=-lwiringPi -lpthread
+#LIBS=-lpthread
 
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
@@ -25,3 +26,4 @@ retrophone: $(OBJ)
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ 
+	rm -f retrophone

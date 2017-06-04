@@ -17,6 +17,9 @@ static int signallingPipe[2];
 static int voipPipe[2];
 static FILE* combinedPipeWriteHandle;
 
+static pthread_mutex_t dialTimeoutIndicator_mutex;
+int dialTimeoutIndicator = -1;
+
 enum state_enum {IDLE, RING, CALL, CONFIG, DIAL};
 //static pthread_mutex_t state_mutex;
 //enum state_enum current_state = NORMAL;
@@ -29,41 +32,6 @@ void *voip_thread(void *arg)
 		fflush(combinedPipeWriteHandle);
 	}
 	fclose(test);
-	
-	
-	/*enum state_enum voip_state = NORMAL;
-	while(1){
-		
-		pthread_mutex_lock(&state_mutex);
-		switch(current_state){
-			case CALL:
-				current_state = ENDED;
-			break;
-			case ENDED:
-				current_state = NORMAL;
-			break;
-			case RING:
-				if(voip_state==NORMAL){
-					rps_ring(0);
-					current_state = NORMAL;
-				}else{
-					current_state = CALL;
-				}
-			break;
-			default:
-				switch(voip_state){
-					case RING:
-						rps_ring(1);
-						current_state = RING;
-					break;
-					case CALL:
-						current_state = CALL;
-				}
-		}
-		pthread_mutex_unlock(&state_mutex);
-		
-		voip_state = rpvoip_update();
-	}*/
 }
 
 void *signalling_thread(void *arg)
@@ -72,36 +40,6 @@ void *signalling_thread(void *arg)
 	while(feof(test)==0){
 		fputc(fgetc(test), combinedPipeWriteHandle);
 		fflush(combinedPipeWriteHandle);
-		/*char input = fgetc(test);
-		pthread_mutex_lock(&state_mutex);
-		switch(current_state){
-			case RING:
-				if(input == 'P'){
-					rps_ring(0);
-					rpvoip_answer();
-				}
-			break;
-			case NORMAL:
-				current_state = DIAL;
-			break;
-			case CALL:
-				switch(input){
-					case 'H':
-						rpvoip_terminate();	
-						current_state = ENDED;
-					break;
-					default:
-						if(input >= '0' && input <= '9'){
-							rpvoip_dial(input);
-						}
-				}
-			break;
-			case ENDED:
-				if(input == 'H'){
-					current_state = NORMAL;
-				}
-		}
-		pthread_mutex_unlock(&state_mutex);*/
 	}
 	fclose(test);
 }
@@ -111,6 +49,9 @@ void *dial_timeout_thread(void *arg)
 	sleep(4);
 	fputc('T', combinedPipeWriteHandle);
 	fflush(combinedPipeWriteHandle);
+	pthread_mutex_lock(&dialTimeoutIndicator_mutex);
+	dialTimeoutIndicator=1;
+	pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
 }
 
 int main(){
@@ -160,6 +101,8 @@ int main(){
 	FILE* test = fdopen(combinedPipe[0], "r");
 	while(feof(test)==0){
 		char input = fgetc(test);
+		fputc(input, stdout);
+		fflush(stdout);
 		switch(current_state){
 			case IDLE:
 				switch(input){
@@ -191,6 +134,12 @@ int main(){
 			case DIAL:
 				switch(input){
 					case 'H':
+						pthread_mutex_lock(&dialTimeoutIndicator_mutex);
+						if(dialTimeoutIndicator==0){
+							pthread_cancel(dialTimeoutThread_handle);
+							dialTimeoutIndicator=0;
+						}
+						pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
 						dialed_numer[0] = 0x00;
 						current_state = IDLE;
 					break;
@@ -204,7 +153,7 @@ int main(){
 						}
 						rpsay_string("Waehle Telephonenummer");
 						rpsay_spell(dialed_numer);
-						sleep(2);
+						sleep(3);
 						rpvoip_call(dialed_numer);
 					break;
 					case 'C':
@@ -222,15 +171,20 @@ int main(){
 					case '7':
 					case '8':
 					case '9':
-						if(dialTimeoutThread_handle){
+						pthread_mutex_lock(&dialTimeoutIndicator_mutex);
+						if(dialTimeoutIndicator==0){
 							pthread_cancel(dialTimeoutThread_handle);
 						}
+						pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
 						if(input >= '0' && input <= '9'){
 							char append[2];
 							append[0] = input;
 							append[1] = 0x00;
 							strcat_s(dialed_numer, dialed_numer_buffer, append);
 							pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, NULL);
+							pthread_mutex_lock(&dialTimeoutIndicator_mutex);
+							dialTimeoutIndicator=0;
+							pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
 							pthread_detach(dialTimeoutThread_handle);
 						}
 					break;
@@ -279,9 +233,6 @@ int main(){
 				}
 			break;
 		}
-		
-		fputc(input, stdout);
-		fflush(stdout);
 	}
 	fclose(test);
 	

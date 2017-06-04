@@ -1,7 +1,10 @@
 #include "rp_signalling.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 static FILE* rps_output_pipe;
 static pthread_t rps_ring_thread;
@@ -19,22 +22,21 @@ static int rps_gpio_port_out;
 
 void *rps_processDial(void *arg)
 {
-	int i=0;
-	pthread_mutex_lock(&rps_impulseCount_mutex);
-	i = rps_impulseCount;
-	pthread_mutex_unlock(&rps_impulseCount_mutex);
-
+	int i=*((int *) arg);
+    free(arg);
+	
 	usleep(200000);
 
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 	pthread_mutex_lock(&rps_impulseCount_mutex);
 	if(i == rps_impulseCount){
 		rps_impulseCount = 0;
-		pthread_mutex_unlock(&rps_impulseCount_mutex);
 		fputc('0'+(i==10?0:i), rps_output_pipe);
 		fflush(rps_output_pipe);
-	}else{
-		pthread_mutex_unlock(&rps_impulseCount_mutex);
 	}
+	pthread_mutex_unlock(&rps_impulseCount_mutex);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	fflush(stdout);
 }
 
 void *rps_processImpulse(void *arg)
@@ -48,18 +50,18 @@ void *rps_processImpulse(void *arg)
 			usleep(50000);
 			if(!digitalRead(rps_gpio_port_in)){
 				pthread_mutex_lock(&rps_impulseCount_mutex);
-				impulseCount++; //Valid Impulse
-				pthread_mutex_unlock(&rps_impulseCount_mutex);
-				pthread_t thread1;
-				pthread_create(&thread1, NULL, rps_processDial, NULL);
-				pthread_detach(thread1);
-				pthread_mutex_lock(&rps_impulseCount_mutex);
-				if(impulseCount==1){
-					pthread_mutex_unlock(&rps_impulseCount_mutex);
+				rps_impulseCount++; //Valid Impulse
+				if(rps_impulseCount==1){
+					
 					fputc('D', rps_output_pipe); //Dialing detected
 					fflush(rps_output_pipe);
 				}
 				pthread_mutex_unlock(&rps_impulseCount_mutex);
+				pthread_t thread1;
+				int *arg = malloc(sizeof(*arg));
+				*arg = rps_impulseCount;
+				pthread_create(&thread1, NULL, rps_processDial, arg);
+				pthread_detach(thread1);
 			}else{
 				fputc('H', rps_output_pipe); //Hang Up detected
 				fflush(rps_output_pipe);
@@ -89,7 +91,7 @@ void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 	rps_gpio_port_out = gpio_port_out;
 	
 	rps_output_pipe = fdopen(output_pipe, "w");
-	if(rps_output_pipe == null){
+	if(rps_output_pipe == NULL){
 		fprintf(stderr, "rps_init: Error open output_pipe");
 	}
 
@@ -101,9 +103,9 @@ void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 void *rps_processRing(void *arg){
 	while(1){
 		digitalWrite(rps_gpio_port_out, 1);
-		sleep(3);
+		sleep(2);
 		digitalWrite(rps_gpio_port_out, 0);
-		sleep(3);
+		sleep(2);
 	}
 }
 
@@ -162,7 +164,7 @@ void *rps_processRing(void *arg){
 	while(1){
 		printf("Telefon klingelt!\n");
 		fflush(stdout);
-		sleep(3);
+		sleep(2);
 	}
 }
 
