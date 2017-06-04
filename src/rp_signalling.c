@@ -102,9 +102,15 @@ void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 
 void *rps_processRing(void *arg){
 	while(1){
+		pthread_mutex_lock(&rps_isrFired_mutex);
+		rps_isrFired = 1;
+		pthread_mutex_unlock(&rps_isrFired_mutex);
 		digitalWrite(rps_gpio_port_out, 1);
 		sleep(2);
 		digitalWrite(rps_gpio_port_out, 0);
+		pthread_mutex_lock(&rps_isrFired_mutex);
+		rps_isrFired = 0;
+		pthread_mutex_unlock(&rps_isrFired_mutex);
 		sleep(2);
 	}
 }

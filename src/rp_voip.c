@@ -42,8 +42,8 @@ void *rpvoip_processPipeRead(void *arg)
 			fputc('C', rpvoip_output_pipe);
 			fflush(rpvoip_output_pipe);
 		}
-		/*printf(line);
-		fflush(stdout);*/
+		//printf(line);
+		//fflush(stdout);
 	}
 }
 
