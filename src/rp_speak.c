@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <string.h>
 #include "popen2.h"
+#include "string_s.h"
 
 static FILE* espeek_pipe_handle;
 static pid_t espeak_pid;
@@ -27,198 +28,205 @@ void rpsay_string(char* text){
 
 void rpsay_spell(char* text){
 	
+	int spell_string_buffer = 1024;
+	char spell_string[spell_string_buffer];
+	spell_string[0] = 0x00;
+	
 	for(int i=0; i<strlen(text); i++){
 		switch(text[i]){
 			case 'A':
-				rpsay_string("Großes A");
+				strcat_s(spell_string, spell_string_buffer, "Großes A, ");
 				break;
 			case 'B':
-				rpsay_string("Großes Be");
+				strcat_s(spell_string, spell_string_buffer, "Großes Be, ");
 				break;
 			case 'C':
-				rpsay_string("Großes Ce");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ce, ");
 				break;
 			case 'D':
-				rpsay_string("Großes De");
+				strcat_s(spell_string, spell_string_buffer, "Großes De, ");
 				break;
 			case 'E':
-				rpsay_string("Großes E");
+				strcat_s(spell_string, spell_string_buffer, "Großes E, ");
 				break;
 			case 'F':
-				rpsay_string("Großes Ef");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ef, ");
 				break;
 			case 'G':
-				rpsay_string("Großes Ge");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ge, ");
 				break;
 			case 'H':
-				rpsay_string("Großes Ha");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ha, ");
 				break;
 			case 'I':
-				rpsay_string("Großes I");
+				strcat_s(spell_string, spell_string_buffer, "Großes I, ");
 				break;
 			case 'J':
-				rpsay_string("Großes Jot");
+				strcat_s(spell_string, spell_string_buffer, "Großes Jot, ");
 				break;
 			case 'K':
-				rpsay_string("Großes Ka");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ka, ");
 				break;
 			case 'L':
-				rpsay_string("Großes El");
+				strcat_s(spell_string, spell_string_buffer, "Großes El, ");
 				break;
 			case 'M':
-				rpsay_string("Großes Em");
+				strcat_s(spell_string, spell_string_buffer, "Großes Em, ");
 				break;
 			case 'N':
-				rpsay_string("Großes En");
+				strcat_s(spell_string, spell_string_buffer, "Großes En, ");
 				break;
 			case 'O':
-				rpsay_string("Großes O");
+				strcat_s(spell_string, spell_string_buffer, "Großes O, ");
 				break;
 			case 'P':
-				rpsay_string("Großes Pe");
+				strcat_s(spell_string, spell_string_buffer, "Großes Pe, ");
 				break;
 			case 'Q':
-				rpsay_string("Großes Q");
+				strcat_s(spell_string, spell_string_buffer, "Großes Q, ");
 				break;
 			case 'R':
-				rpsay_string("Großes Er");
+				strcat_s(spell_string, spell_string_buffer, "Großes Er, ");
 				break;
 			case 'S':
-				rpsay_string("Großes Es");
+				strcat_s(spell_string, spell_string_buffer, "Großes Es, ");
 				break;
 			case 'T':
-				rpsay_string("Großes Te");
+				strcat_s(spell_string, spell_string_buffer, "Großes Te, ");
 				break;
 			case 'U':
-				rpsay_string("Großes U");
+				strcat_s(spell_string, spell_string_buffer, "Großes U, ");
 				break;
 			case 'V':
-				rpsay_string("Großes Vau");
+				strcat_s(spell_string, spell_string_buffer, "Großes Vau, ");
 				break;
 			case 'W':
-				rpsay_string("Großes We");
+				strcat_s(spell_string, spell_string_buffer, "Großes We, ");
 				break;
 			case 'X':
-				rpsay_string("Großes Ix");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ix, ");
 				break;
 			case 'Y':
-				rpsay_string("Großes Ypsilon");
+				strcat_s(spell_string, spell_string_buffer, "Großes Ypsilon, ");
 				break;
 			case 'Z':
-				rpsay_string("Großes Zet");
+				strcat_s(spell_string, spell_string_buffer, "Großes Zet, ");
 				break;
 			case 'a':
-				rpsay_string("Kleines A");
+				strcat_s(spell_string, spell_string_buffer, "Kleines A, ");
 				break;
 			case 'b':
-				rpsay_string("Kleines Be");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Be, ");
 				break;
 			case 'c':
-				rpsay_string("Kleines Ce");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ce, ");
 				break;
 			case 'd':
-				rpsay_string("Kleines De");
+				strcat_s(spell_string, spell_string_buffer, "Kleines De, ");
 				break;
 			case 'e':
-				rpsay_string("Kleines E");
+				strcat_s(spell_string, spell_string_buffer, "Kleines E, ");
 				break;
 			case 'f':
-				rpsay_string("Kleines Ef");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ef, ");
 				break;
 			case 'g':
-				rpsay_string("Kleines Ge");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ge, ");
 				break;
 			case 'h':
-				rpsay_string("Kleines Ha");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ha, ");
 				break;
 			case 'i':
-				rpsay_string("Kleines I");
+				strcat_s(spell_string, spell_string_buffer, "Kleines I, ");
 				break;
 			case 'j':
-				rpsay_string("Kleines Jot");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Jot, ");
 				break;
 			case 'k':
-				rpsay_string("Kleines Ka");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ka, ");
 				break;
 			case 'l':
-				rpsay_string("Kleines El");
+				strcat_s(spell_string, spell_string_buffer, "Kleines El, ");
 				break;
 			case 'm':
-				rpsay_string("Kleines Em");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Em, ");
 				break;
 			case 'n':
-				rpsay_string("Kleines En");
+				strcat_s(spell_string, spell_string_buffer, "Kleines En, ");
 				break;
 			case 'o':
-				rpsay_string("Kleines O");
+				strcat_s(spell_string, spell_string_buffer, "Kleines O, ");
 				break;
 			case 'p':
-				rpsay_string("Kleines Pe");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Pe, ");
 				break;
 			case 'q':
-				rpsay_string("Kleines Q");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Q, ");
 				break;
 			case 'r':
-				rpsay_string("Kleines Er");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Er, ");
 				break;
 			case 's':
-				rpsay_string("Kleines Es");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Es, ");
 				break;
 			case 't':
-				rpsay_string("Kleines Te");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Te, ");
 				break;
 			case 'u':
-				rpsay_string("Kleines U");
+				strcat_s(spell_string, spell_string_buffer, "Kleines U, ");
 				break;
 			case 'v':
-				rpsay_string("Kleines Vau");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Vau, ");
 				break;
 			case 'w':
-				rpsay_string("Kleines We");
+				strcat_s(spell_string, spell_string_buffer, "Kleines We, ");
 				break;
 			case 'x':
-				rpsay_string("Kleines Ix");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ix, ");
 				break;
 			case 'y':
-				rpsay_string("Kleines Ypsilon");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Ypsilon, ");
 				break;
 			case 'z':
-				rpsay_string("Kleines Zet");
+				strcat_s(spell_string, spell_string_buffer, "Kleines Zet, ");
 				break;
 			case '0':
-				rpsay_string("Null");
+				strcat_s(spell_string, spell_string_buffer, "Null, ");
 				break;
 			case '1':
-				rpsay_string("Eins");
+				strcat_s(spell_string, spell_string_buffer, "Eins, ");
 				break;
 			case '2':
-				rpsay_string("Zwei");
+				strcat_s(spell_string, spell_string_buffer, "Zwei, ");
 				break;
 			case '3':
-				rpsay_string("Drei");
+				strcat_s(spell_string, spell_string_buffer, "Drei, ");
 				break;
 			case '4':
-				rpsay_string("Vier");
+				strcat_s(spell_string, spell_string_buffer, "Vier, ");
 				break;
 			case '5':
-				rpsay_string("Fünf");
+				strcat_s(spell_string, spell_string_buffer, "Fünf, ");
 				break;
 			case '6':
-				rpsay_string("Sechs");
+				strcat_s(spell_string, spell_string_buffer, "Sechs, ");
 				break;
 			case '7':
-				rpsay_string("Sieben");
+				strcat_s(spell_string, spell_string_buffer, "Sieben, ");
 				break;
 			case '8':
-				rpsay_string("Acht");
+				strcat_s(spell_string, spell_string_buffer, "Acht, ");
 				break;
 			case '9':
-				rpsay_string("Neun");
+				strcat_s(spell_string, spell_string_buffer, "Neun, ");
 				break;
 			default:
-				rpsay_string("Unbekantes Zeichen");
+				strcat_s(spell_string, spell_string_buffer, "Unbekantes Zeichen, ");
 		}
 	}
+	printf("%s\n", spell_string);
+	fflush(stdout);
+	rpsay_string(spell_string);
 }
 
 void rpsay_quit(){

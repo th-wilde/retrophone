@@ -134,25 +134,25 @@ static pthread_t thread1;
 void *rps_readFromStdin(void *arg)
 {
 	if(rps_output_pipe == NULL){
-                fprintf(stderr, "rps_init: Error open output_pipe\n");
-        }
-        char ch;
-        while(feof(stdin)==0)
-        {
-                ch = fgetc(stdin);
-                if((ch >= '0' && ch <= '9') || ch == 'P' || ch == 'H' || ch == 'D'){
-                        fputc(ch, rps_output_pipe);
-                        fflush(rps_output_pipe);
-                }
-        }
+			fprintf(stderr, "rps_init: Error open output_pipe\n");
+	}
+	char ch;
+	while(feof(stdin)==0)
+	{
+		ch = fgetc(stdin);
+		if((ch >= '0' && ch <= '9') || ch == 'P' || ch == 'H' || ch == 'D'){
+			fputc(ch, rps_output_pipe);
+			fflush(rps_output_pipe);
+		}
+	}
 }
 
 void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 
 	rps_output_pipe = fdopen(output_pipe, "w");
 	if(rps_output_pipe == NULL){
-                fprintf(stderr, "rps_init: Error open output_pipe\n");
-        }
+		fprintf(stderr, "rps_init: Error open output_pipe\n");
+	}
 
 	pthread_create(&thread1, NULL, rps_readFromStdin, NULL);
 	pthread_detach(thread1);
@@ -160,8 +160,8 @@ void rps_init(int gpio_port_in, int gpio_port_out, int output_pipe) {
 
 void *rps_processRing(void *arg){
 	while(1){
-		printf("Telefon klingelt!");
-		sleep(3);
+		printf("Telefon klingelt!\n");
+		fflush(stdout);
 		sleep(3);
 	}
 }

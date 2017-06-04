@@ -58,7 +58,7 @@ void rpconf_setup(struct rp_config_struct config){
 	strcat_s(linphone_sed, linphone_sed_buffer, config.sip_password);
 	strcat_s(linphone_sed, linphone_sed_buffer, "/g; s/\\[sip_realm\\]/");
 	strcat_s(linphone_sed, linphone_sed_buffer, config.sip_realm);
-	strcat_s(linphone_sed, linphone_sed_buffer, "/g; s/\\[sip_realm\\]/");
+	strcat_s(linphone_sed, linphone_sed_buffer, "/g; s/\\[stun_server\\]/");
 	strcat_s(linphone_sed, linphone_sed_buffer, config.stun_server);
 	strcat_s(linphone_sed, linphone_sed_buffer, "/g' ~/.linphonerc.template > ~/.linphonerc");
 	

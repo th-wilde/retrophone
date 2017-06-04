@@ -2,9 +2,6 @@
 firewall_policy=2
 stun_server=[stun_server]
 
-[sound]
-remote_ring=/usr/share/sounds/linphone/void.wav
-
 [proxy_0]
 reg_proxy=sip:[sip_server]
 reg_identity=sip:[sip_username]@[sip_realm]
