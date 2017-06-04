@@ -17,7 +17,7 @@ static int signallingPipe[2];
 static int voipPipe[2];
 static FILE* combinedPipeWriteHandle;
 
-enum state_enum {IDLE, RING, CALL, CONFIG, DIAL, ENDED};
+enum state_enum {IDLE, RING, CALL, CONFIG, DIAL};
 //static pthread_mutex_t state_mutex;
 //enum state_enum current_state = NORMAL;
 
@@ -198,8 +198,13 @@ int main(){
 						rpvoip_terminate();
 					break;
 					case 'T':
-						rpsay_string("Wähle Telefonnummer");
+						if(strcmp(dialed_numer,"0000") == 0){
+							dialed_numer[0] = 0x00;
+							current_state = CONFIG;
+						}
+						rpsay_string("Waehle Telephonenummer");
 						rpsay_spell(dialed_numer);
+						sleep(2);
 						rpvoip_call(dialed_numer);
 					break;
 					case 'C':
@@ -232,6 +237,27 @@ int main(){
 				}
 			break;
 			case CALL:
+				switch(input){
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+						rpvoip_dial(input);
+					break;
+					case 'H':
+						rpvoip_terminate();
+					case 'N':
+						current_state = IDLE;
+					break;
+				}
+			break;
+			case CONFIG:
 				switch(input){
 					case '0':
 					case '1':

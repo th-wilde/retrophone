@@ -224,8 +224,6 @@ void rpsay_spell(char* text){
 				strcat_s(spell_string, spell_string_buffer, "Unbekantes Zeichen, ");
 		}
 	}
-	printf("%s\n", spell_string);
-	fflush(stdout);
 	rpsay_string(spell_string);
 }
 
