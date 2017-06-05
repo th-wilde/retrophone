@@ -6,8 +6,7 @@ CFLAGS=-I$(IDIR) -g -std=gnu11 -O3 -D__USE_WIRINGPI__
 ODIR=obj
 LDIR =lib
 
-LIBS=-lwiringPi -lpthread
-#LIBS=-lpthread
+LIBS=-lpthread -lwiringPi
 
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
@@ -27,3 +26,4 @@ retrophone: $(OBJ)
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ 
 	rm -f retrophone
+	rm -f Makefile

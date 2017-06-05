@@ -1,0 +1,35 @@
+#! /bin/bash
+cd `dirname $0`
+
+failed=0
+echo "CONFIGURE retrophone Makefile..."
+if command -v espeak >/dev/null 2>&1
+then
+	echo "...espeak found."
+else
+	echo "...espeak required but not installed. (try to install it via 'sudo apt-get install espeak')"
+	failed=1
+fi
+
+if command -v linphonec >/dev/null 2>&1
+then
+	echo "...linphonec found."
+else
+	echo "...linphonec required but not installed. (try to install it via 'sudo apt-get install linphone-nogtk')"
+	failed=1
+fi
+
+if [ $failed == 0 ]
+then
+	if [ ! -f /usr/include/wiringPi.h ]
+	then
+		echo "...wiringPi-Lib not found. (Fallback to stdin/stdout)"
+		sed 's/-D__USE_WIRINGPI__//g; s/-lwiringPi//g' Makefile.template > Makefile
+	else
+		echo "...wiringPi-Lib found."
+		cp Makefile.template Makefile
+	fi
+	echo "...done!"
+else
+	echo "...failed!"
+fi
