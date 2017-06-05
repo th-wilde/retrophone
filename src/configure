@@ -2,7 +2,7 @@
 cd `dirname $0`
 
 failed=0
-echo "CONFIGURE retrophone Makefile..."
+echo "CONFIGURE retrophone..."
 if command -v espeak >/dev/null 2>&1
 then
 	echo "...espeak found."
@@ -29,6 +29,25 @@ then
 		echo "...wiringPi-Lib found."
 		cp Makefile.template Makefile
 	fi
+	
+	echo "Enter SIP-Server: "
+	read sip_server
+	
+	echo "Enter SIP-Username: "
+	read sip_username
+	
+	echo "Enter SIP-Password: "
+	read sip_password
+	
+	echo "Enter SIP-Realm: "
+	read sip_realm
+	
+	echo "Enter STUN-Server: "
+	read stun_server
+	
+	sed -i "s/\[sip_server\]/$sip_server/g; s/\[sip_username\]/$sip_username/g; s/\[sip_password\]/$sip_password/g; s/\[sip_realm\]/$sip_realm/g; s/\[stun_server\]/$stun_server/g;" Makefile
+	
+	
 	echo "...done!"
 else
 	echo "...failed!"

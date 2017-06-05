@@ -19,7 +19,7 @@ static int voipPipe[2];
 static FILE* combinedPipeWriteHandle;
 
 static pthread_mutex_t dialTimeoutIndicator_mutex;
-int dialTimeoutIndicator = -1;
+static int dialTimeoutIndicator = -1;
 
 enum state_enum {IDLE, RING, CALL, CONFIG, DIAL};
 //static pthread_mutex_t state_mutex;
@@ -73,18 +73,18 @@ void *dial_timeout_thread(void *arg)
 int main(){
 	
 	struct rp_config_struct config;
-	rpconf_read(config);
+	//rpconf_read(config);
 	
-	strcpy_s(config.sip_server, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "sipgate.de");
-	strcpy_s(config.sip_username, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "2497424e0");
-	strcpy_s(config.sip_password, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "sU6qVXGU3YjH");
-	strcpy_s(config.sip_realm, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "sipgate.de");
-	strcpy_s(config.stun_server, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "stun.sipgate.net");
-	strcpy_s(config.wifi_ssid, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "wilnetwlan");
-	strcpy_s(config.wifi_password, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "aaaaaaa");
+	strcpy_s(config.sip_server, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, __CONF__SIP_SERVER);
+	strcpy_s(config.sip_username, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, __CONF__SIP_USERNAME);
+	strcpy_s(config.sip_password, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, __CONF__SIP_PASSWORD);
+	strcpy_s(config.sip_realm, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, __CONF__SIP_REALM);
+	strcpy_s(config.stun_server, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, __CONF__STUN_SERVER);
+	//strcpy_s(config.wifi_ssid, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "wilnetwlan");
+	//strcpy_s(config.wifi_password, RP_CONFIG_STRUCT_STRING_BUFFER_DEFINE, "aaaaaaa");
 	
-	rpconf_write(config);
-	
+	//rpconf_write(config);
+	rpconf_setup(config);
 	
 	pipe(signallingPipe);
 	pipe(voipPipe);
@@ -98,7 +98,6 @@ int main(){
 	rpvoip_init(config, voipPipe[1]);
 	rpsay_init();
 	rps_init(GPIO_INPUT, GPIO_OUTPUT, signallingPipe[1]);
-	//rpn2c_init(signallingPipe[0], combinedPipe[1]);
 	
 	
 	pthread_t voipThread_handle;
@@ -117,8 +116,8 @@ int main(){
 	FILE* test = fdopen(combinedPipe[0], "r");
 	while(feof(test)==0){
 		char input = fgetc(test);
-		fputc(input, stdout);
-		fflush(stdout);
+		//fputc(input, stdout);
+		//fflush(stdout);
 		switch(current_state){
 			case IDLE:
 				switch(input){
@@ -166,12 +165,9 @@ int main(){
 						rpvoip_terminate();
 					break;
 					case 'T':
-						if(strcmp(dialed_numer,"0000") == 0){
-							dialed_numer[0] = 0x00;
-							current_state = CONFIG;
-						}
 						rpsay_string("Waehle Telephonenummer");
 						rpsay_spell(dialed_numer);
+						pthread_mutex_lock(&dialTimeoutIndicator_mutex);
 						if(dialTimeoutIndicator==0){
 							pthread_cancel(dialTimeoutThread_handle);
 						}
@@ -179,10 +175,19 @@ int main(){
 						struct timeout_arg_struct *arg = malloc(sizeof(*arg));
 						(*arg).timeout = 4;
 						(*arg).signal = 'S';
+						pthread_mutex_lock(&dialTimeoutIndicator_mutex);
+						dialTimeoutIndicator=0;
+						pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
 						pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, arg);
 					break;
 					case 'S':
-						rpvoip_call(dialed_numer);
+						/*if(strcmp(dialed_numer,"0000") == 0){
+							dialed_numer[0] = 0x00;
+							rpconf_wiz_init(config);
+							current_state = CONFIG;
+						}else{*/
+							rpvoip_call(dialed_numer);
+						//}
 					break;
 					case 'C':
 						dialed_numer[0] = 0x00;
@@ -212,10 +217,10 @@ int main(){
 							struct timeout_arg_struct *arg = malloc(sizeof(*arg));
 							(*arg).timeout = 4;
 							(*arg).signal = 'T';
-							pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, arg);
 							pthread_mutex_lock(&dialTimeoutIndicator_mutex);
 							dialTimeoutIndicator=0;
 							pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
+							pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, arg);
 							pthread_detach(dialTimeoutThread_handle);
 						}
 					break;
@@ -243,25 +248,9 @@ int main(){
 				}
 			break;
 			case CONFIG:
-				switch(input){
-					case '0':
-					case '1':
-					case '2':
-					case '3':
-					case '4':
-					case '5':
-					case '6':
-					case '7':
-					case '8':
-					case '9':
-						rpvoip_dial(input);
-					break;
-					case 'H':
-						rpvoip_terminate();
-					case 'N':
-						current_state = IDLE;
-					break;
-				}
+				/*if(rpconf_wiz_input(input)){
+					current_state = IDLE;
+				}*/
 			break;
 		}
 	}

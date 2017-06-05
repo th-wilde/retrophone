@@ -1,7 +1,6 @@
 IDIR =include
 CC=gcc
-CFLAGS=-I$(IDIR) -g -std=gnu11 -O3 -D__USE_WIRINGPI__
-#CFLAGS=-I$(IDIR) -g -std=gnu11 -O3
+CFLAGS=-I$(IDIR) -g -std=gnu11 -O3 -D__USE_WIRINGPI__ "-D__CONF__SIP_SERVER=\"[sip_server]\"" "-D__CONF__SIP_USERNAME=\"[sip_username]\"" "-D__CONF__SIP_PASSWORD=\"[sip_password]\"" "-D__CONF__SIP_REALM=\"[sip_realm]\"" "-D__CONF__STUN_SERVER=\"[stun_server]\""
 
 ODIR=obj
 LDIR =lib
@@ -11,7 +10,7 @@ LIBS=-lpthread -lwiringPi
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = retrophone.o rp_signalling.o rp_number2char.o rp_speak.o rp_voip.o popen2.o string_s.o rp_config.o
+_OBJ = retrophone.o rp_signalling.o rp_speak.o rp_voip.o popen2.o string_s.o rp_config.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
@@ -27,3 +26,21 @@ clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ 
 	rm -f retrophone
 	rm -f Makefile
+
+install: uninstall
+	echo "INSTALL requires root..."
+	cp ../resources/.linphonerc.template $(HOME)/
+	mkdir -p $(HOME)/bin
+	cp ../resources/retrophone-gpiosetup.sh $(HOME)/bin
+	cp retrophone $(HOME)/bin
+	sudo -- sh -c "cp ../resources/void.wav /usr/share/sounds/linphone/rings/; sed -i \"s/exit 0//g\" /etc/rc.local; echo \"$(HOME)/bin/retrophone-gpiosetup.sh\nsu -c \"$(HOME)/bin/retrophone\" pi &\nexit 0\" >> /etc/rc.local"
+	
+uninstall:
+	echo "UNINSTALL requires root..."
+	-killall retrophone
+	-sleep 3
+	-killall -9 retrophone
+	-rm -f $(HOME)/.linphonerc.template
+	-rm -f $(HOME)/bin/retrophone-gpiosetup.sh
+	-rm -f $(HOME)/bin/retrophone
+	-sudo -- sh -c "rm -f /usr/share/sounds/linphone/rings/void.wav; sed -i \"s/.*retrophone.*//g\" /etc/rc.local;"

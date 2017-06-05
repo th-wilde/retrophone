@@ -67,7 +67,7 @@ void rpconf_setup(struct rp_config_struct config){
 	
 	//generate /etc/wpa_supplicant/wpa_supplicant.conf
 	
-	int wpa_supplicant_sed_buffer = 1024;
+	/*int wpa_supplicant_sed_buffer = 1024;
 	char wpa_supplicant_sed[wpa_supplicant_sed_buffer];
 	wpa_supplicant_sed[0] = 0x00;
 	strcat_s(wpa_supplicant_sed, wpa_supplicant_sed_buffer, "sed '");
@@ -78,4 +78,5 @@ void rpconf_setup(struct rp_config_struct config){
 	strcat_s(wpa_supplicant_sed, wpa_supplicant_sed_buffer, "/g' /etc/wpa_supplicant/wpa_supplicant.conf.template > /etc/wpa_supplicant/wpa_supplicant.conf");
 	
 	system(wpa_supplicant_sed);
+	*/
 }

@@ -16,11 +16,7 @@ void rpsay_init(){
 	close(espeak_pipe_out);
 	espeek_pipe_handle = fdopen(espeak_pipe_in, "w");
 }
-void rpsay_char(char character){
-	
-	fprintf(espeek_pipe_handle, "%c.\n\n", character);
-	fflush(espeek_pipe_handle);
-}
+
 void rpsay_string(char* text){
 	fprintf(espeek_pipe_handle, "%s.\n\n", text);
 	fflush(espeek_pipe_handle);
@@ -225,6 +221,12 @@ void rpsay_spell(char* text){
 		}
 	}
 	rpsay_string(spell_string);
+}
+
+void rpsay_char(char character){
+	char text[]="_";
+	text[0] = character;
+	rpsay_spell(text);
 }
 
 void rpsay_quit(){
