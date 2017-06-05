@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -44,14 +45,29 @@ void *signalling_thread(void *arg)
 	fclose(test);
 }
 
+struct timeout_arg_struct {
+	int timeout;
+	char signal;
+};
+
 void *dial_timeout_thread(void *arg)
 {
-	sleep(4);
-	fputc('T', combinedPipeWriteHandle);
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+	struct timeout_arg_struct arg2=*((struct timeout_arg_struct *) arg);
+    free(arg);
+	if(arg2.timeout < 0)
+		pthread_exit(NULL);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	
+	sleep(arg2.timeout);
+	
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+	fputc(arg2.signal, combinedPipeWriteHandle);
 	fflush(combinedPipeWriteHandle);
 	pthread_mutex_lock(&dialTimeoutIndicator_mutex);
 	dialTimeoutIndicator=1;
 	pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 }
 
 int main(){
@@ -113,6 +129,9 @@ int main(){
 					case 'P':
 						current_state = DIAL;
 					break;
+					case 'C':
+						rpvoip_terminate();
+					break;
 				}
 			break;
 			case RING:
@@ -153,7 +172,16 @@ int main(){
 						}
 						rpsay_string("Waehle Telephonenummer");
 						rpsay_spell(dialed_numer);
-						sleep(3);
+						if(dialTimeoutIndicator==0){
+							pthread_cancel(dialTimeoutThread_handle);
+						}
+						pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
+						struct timeout_arg_struct *arg = malloc(sizeof(*arg));
+						(*arg).timeout = 4;
+						(*arg).signal = 'S';
+						pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, arg);
+					break;
+					case 'S':
 						rpvoip_call(dialed_numer);
 					break;
 					case 'C':
@@ -181,7 +209,10 @@ int main(){
 							append[0] = input;
 							append[1] = 0x00;
 							strcat_s(dialed_numer, dialed_numer_buffer, append);
-							pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, NULL);
+							struct timeout_arg_struct *arg = malloc(sizeof(*arg));
+							(*arg).timeout = 4;
+							(*arg).signal = 'T';
+							pthread_create(&dialTimeoutThread_handle, NULL, dial_timeout_thread, arg);
 							pthread_mutex_lock(&dialTimeoutIndicator_mutex);
 							dialTimeoutIndicator=0;
 							pthread_mutex_unlock(&dialTimeoutIndicator_mutex);
