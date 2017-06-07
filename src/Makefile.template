@@ -38,8 +38,10 @@ install: uninstall
 uninstall:
 	echo "UNINSTALL requires root..."
 	-killall retrophone
-	-sleep 3
+	-killall linphonec
+	-sleep 10
 	-killall -9 retrophone
+	-killall -9 linphonec
 	-rm -f $(HOME)/.linphonerc.template
 	-rm -f $(HOME)/bin/retrophone-gpiosetup.sh
 	-rm -f $(HOME)/bin/retrophone

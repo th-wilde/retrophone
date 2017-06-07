@@ -108,9 +108,13 @@ void *rps_processRing(void *arg){
 		digitalWrite(rps_gpio_port_out, 1);
 		sleep(2);
 		digitalWrite(rps_gpio_port_out, 0);
+		usleep(100000);
 		pthread_mutex_lock(&rps_isrFired_mutex);
 		rps_isrFired = 0;
 		pthread_mutex_unlock(&rps_isrFired_mutex);
+		pthread_t thread1;
+		pthread_create(&thread1, NULL, rps_processImpulse, NULL);
+		pthread_detach(thread1);
 		sleep(2);
 	}
 }
